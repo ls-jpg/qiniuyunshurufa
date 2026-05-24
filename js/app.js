@@ -143,10 +143,50 @@
             speechModule.clear();
         });
 
+        // 导出Word按钮
+        bindExportWordEvent();
+
         // 语言选择
         uiModule.onLanguageChange((language) => {
             speechModule.setLanguage(language);
             uiModule.updateStatus(`已切换识别语言: ${uiModule.languageSelect.options[uiModule.languageSelect.selectedIndex].text}`, 'info');
+        });
+    }
+
+    /**
+     * 绑定导出Word按钮事件
+     */
+    function bindExportWordEvent() {
+        const exportBtn = document.getElementById('exportWordBtn');
+        if (!exportBtn) return;
+
+        exportBtn.addEventListener('click', () => {
+            let exportText = '';
+
+            // 判断当前是单视图还是对比视图
+            const compareView = document.getElementById('compareView');
+            if (compareView && !compareView.classList.contains('hidden')) {
+                // 对比视图模式：导出原文 + 整理稿
+                const originalText = (document.getElementById('originalOutput') || {}).textContent || '';
+                const rewrittenText = (document.getElementById('rewrittenOutput') || {}).textContent || '';
+                exportText = '【原文】\n' + originalText + '\n\n【整理稿】\n' + rewrittenText;
+            } else {
+                // 单视图模式：导出当前显示的文字
+                const outputEl = document.getElementById('output');
+                exportText = outputEl ? outputEl.textContent : '';
+            }
+
+            // 生成带时间戳的文件名
+            const now = new Date();
+            const timestamp = now.getFullYear() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0') + '_' +
+                String(now.getHours()).padStart(2, '0') +
+                String(now.getMinutes()).padStart(2, '0') +
+                String(now.getSeconds()).padStart(2, '0');
+            const filename = '语音识别结果_' + timestamp;
+
+            uiModule.exportToWord(exportText, filename);
         });
     }
 

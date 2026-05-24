@@ -360,6 +360,92 @@ class UIModule {
             }, 300);
         }, duration);
     }
+
+    /**
+     * 导出文本为Word文档
+     * @param {string} text - 要导出的文本内容
+     * @param {string} filename - 文件名（不含扩展名）
+     */
+    exportToWord(text, filename = '语音识别结果') {
+        if (!text || !text.trim()) {
+            this.updateStatus('没有可导出的文本', 'warning');
+            return false;
+        }
+
+        try {
+            // 创建HTML内容（Word可以打开HTML文件）
+            const htmlContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${filename}</title>
+                    <style>
+                        body {
+                            font-family: "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+                            line-height: 1.8;
+                            margin: 40px;
+                            font-size: 14px;
+                            color: #333;
+                        }
+                        h1 {
+                            color: #2c3e50;
+                            border-bottom: 2px solid #3498db;
+                            padding-bottom: 10px;
+                        }
+                        .content {
+                            margin-top: 20px;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        }
+                        .info {
+                            color: #7f8c8d;
+                            font-size: 12px;
+                            margin-top: 30px;
+                            padding-top: 10px;
+                            border-top: 1px solid #ecf0f1;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>语音识别结果</h1>
+                    <div class="content">${text.replace(/\n/g, '<br>')}</div>
+                    <div class="info">
+                        生成时间：${new Date().toLocaleString('zh-CN')}<br>
+                        由"语音输入法"生成
+                    </div>
+                </body>
+                </html>
+            `;
+
+            // 创建Blob对象
+            const blob = new Blob([htmlContent], { type: 'application/msword;charset=utf-8' });
+            
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${filename}.doc`;
+            link.style.display = 'none';
+            
+            // 触发下载
+            document.body.appendChild(link);
+            link.click();
+            
+            // 清理
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            }, 100);
+            
+            this.updateStatus('Word文档已导出', 'success');
+            return true;
+            
+        } catch (error) {
+            console.error('导出Word失败:', error);
+            this.updateStatus('导出失败，请重试', 'error');
+            return false;
+        }
+    }
 }
 
 // 添加toast动画样式
