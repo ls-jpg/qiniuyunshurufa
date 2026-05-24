@@ -9,6 +9,7 @@ class SpeechRecognitionModule {
         this.onResult = null;
         this.onStatusChange = null;
         this.onError = null;
+        this.onStop = null;  // 新增：录音停止回调
         this.finalTranscript = '';
         this.interimTranscript = '';
         
@@ -60,6 +61,11 @@ class SpeechRecognitionModule {
             this.isRecording = false;
             this.updateStatus('录音已停止');
             this.notifyStatusChange('stopped');
+            
+            // 新增：触发智能整理回调
+            if (this.onStop && this.finalTranscript) {
+                this.onStop(this.finalTranscript);
+            }
         };
 
         // 识别错误事件

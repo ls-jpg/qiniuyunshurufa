@@ -1,20 +1,22 @@
 /**
  * 主应用逻辑
- * 整合语音识别和UI交互模块
+ * 整合语音识别、UI交互和智能整理模块
  */
 (function() {
     'use strict';
 
     let speechModule = null;
     let uiModule = null;
+    let rewriter = null;  // 新增：智能整理模块
 
     /**
      * 初始化应用
      */
-    function initApp() {
+     function initApp() {
         // 创建模块实例
         speechModule = new SpeechRecognitionModule();
         uiModule = new UIModule();
+        rewriter = new TextRewriter();  // 新增：创建智能整理模块
 
         // 检查浏览器支持
         if (!speechModule.recognition) {
@@ -36,8 +38,19 @@
             handleError(error);
         };
 
+        // 新增：配置录音停止回调（自动触发智能整理）
+        speechModule.onStop = (finalText) => {
+            handleRecordingStop(finalText);
+        };
+
         // 绑定UI事件
         bindUIEvents();
+
+        // 新增：绑定视图切换事件
+        bindViewEvents();
+
+        // 新增：绑定风格切换事件
+        bindStyleEvents();
 
         // 更新初始状态
         uiModule.updateStatus('准备就绪，点击"开始录音"按钮开始语音输入', 'info');
@@ -83,6 +96,21 @@
     }
 
     /**
+     * 新增：处理录音停止
+     */
+    function handleRecordingStop(finalText) {
+        if (!finalText || !finalText.trim()) return;
+
+        // 自动触发智能整理
+        const rewritten = rewriter.rewrite(finalText, 'formal');
+
+        // 默认显示对比视图
+        uiModule.showCompareView(finalText, rewritten, 'formal');
+
+        uiModule.updateStatus('智能整理完成，可切换视图查看', 'success');
+    }
+
+    /**
      * 绑定UI事件
      */
     function bindUIEvents() {
@@ -120,6 +148,69 @@
             speechModule.setLanguage(language);
             uiModule.updateStatus(`已切换识别语言: ${uiModule.languageSelect.options[uiModule.languageSelect.selectedIndex].text}`, 'info');
         });
+    }
+
+    /**
+     * 新增：绑定视图切换事件
+     */
+    function bindViewEvents() {
+        // 原文按钮
+        if (uiModule.originalBtn) {
+            uiModule.originalBtn.addEventListener('click', () => {
+                const original = rewriter.getOriginal();
+                uiModule.showOriginal(original);
+            });
+        }
+
+        // 整理稿按钮
+        if (uiModule.rewriteBtn) {
+            uiModule.rewriteBtn.addEventListener('click', () => {
+                const rewritten = rewriter.getRewritten();
+                const style = rewriter.getCurrentStyle();
+                uiModule.showRewritten(rewritten, style);
+            });
+        }
+
+        // 对比视图按钮
+        if (uiModule.compareBtn) {
+            uiModule.compareBtn.addEventListener('click', () => {
+                const original = rewriter.getOriginal();
+                const rewritten = rewriter.getRewritten();
+                const style = rewriter.getCurrentStyle();
+                uiModule.showCompareView(original, rewritten, style);
+            });
+        }
+    }
+
+    /**
+     * 新增：绑定风格切换事件
+     */
+    function bindStyleEvents() {
+        if (uiModule.styleSelect) {
+            uiModule.styleSelect.addEventListener('change', (event) => {
+                const style = event.target.value;
+                const original = rewriter.getOriginal();
+                const rewritten = rewriter.rewrite(original, style);
+
+                // 更新对比视图中的整理稿
+                uiModule.updateRewritten(rewritten, style);
+
+                uiModule.updateStatus(`已切换为"${getStyleName(style)}"风格`, 'info');
+            });
+        }
+    }
+
+    /**
+     * 新增：获取风格名称
+     */
+    function getStyleName(style) {
+        const styleNames = {
+            'formal': '正式',
+            'concise': '简洁',
+            'polite': '礼貌',
+            'action': '行动导向'
+        };
+        return styleNames[style] || '正式';
     }
 
     /**

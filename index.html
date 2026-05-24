@@ -46,6 +46,11 @@
             <div class="output-panel">
                 <div class="output-header">
                     <h2>识别结果</h2>
+                    <div class="view-toggle">
+                        <button id="originalBtn" class="toggle-btn active" title="查看原文">原文</button>
+                        <button id="rewriteBtn" class="toggle-btn" title="查看整理稿">整理稿</button>
+                        <button id="compareBtn" class="toggle-btn" title="对比查看">对比视图</button>
+                    </div>
                     <div class="output-actions">
                         <button id="copyBtn" class="btn-action" title="复制文本">
                             📋 复制
@@ -55,7 +60,35 @@
                         </button>
                     </div>
                 </div>
-                <div id="output" class="output-area" contenteditable="true" placeholder="识别的文字将显示在这里..."></div>
+                
+                <!-- 单视图模式 -->
+                <div id="singleView" class="output-area">
+                    <div id="output" contenteditable="true" placeholder="识别的文字将显示在这里..."></div>
+                </div>
+                
+                <!-- 对比视图模式（默认隐藏） -->
+                <div id="compareView" class="compare-container hidden">
+                    <div class="compare-panel original-panel">
+                        <h3>原文</h3>
+                        <div id="originalOutput" class="compare-content" contenteditable="true" placeholder="原始识别结果..."></div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="compare-panel rewritten-panel">
+                        <h3>整理稿 <span class="style-label">正式</span></h3>
+                        <div id="rewrittenOutput" class="compare-content" contenteditable="true" placeholder="智能整理后的结果..."></div>
+                    </div>
+                </div>
+                
+                <!-- 风格选择器（对比视图中显示） -->
+                <div id="styleSelector" class="style-selector hidden">
+                    <label for="styleSelect">风格：</label>
+                    <select id="styleSelect">
+                        <option value="formal">正式</option>
+                        <option value="concise">简洁</option>
+                        <option value="polite">礼貌</option>
+                        <option value="action">行动导向</option>
+                    </select>
+                </div>
             </div>
 
             <div class="info-panel">
@@ -84,6 +117,7 @@
 
     <script src="js/speech.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/rewriter.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

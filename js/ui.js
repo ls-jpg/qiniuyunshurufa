@@ -13,6 +13,17 @@ class UIModule {
         this.clearBtn = null;
         this.languageSelect = null;
         
+        // 新增：视图切换相关元素
+        this.originalBtn = null;
+        this.rewriteBtn = null;
+        this.compareBtn = null;
+        this.singleView = null;
+        this.compareView = null;
+        this.originalOutput = null;
+        this.rewrittenOutput = null;
+        this.styleSelector = null;
+        this.styleSelect = null;
+        
         this.init();
     }
 
@@ -29,6 +40,17 @@ class UIModule {
         this.copyBtn = document.getElementById('copyBtn');
         this.clearBtn = document.getElementById('clearBtn');
         this.languageSelect = document.getElementById('language');
+        
+        // 新增：获取视图切换相关元素
+        this.originalBtn = document.getElementById('originalBtn');
+        this.rewriteBtn = document.getElementById('rewriteBtn');
+        this.compareBtn = document.getElementById('compareBtn');
+        this.singleView = document.getElementById('singleView');
+        this.compareView = document.getElementById('compareView');
+        this.originalOutput = document.getElementById('originalOutput');
+        this.rewrittenOutput = document.getElementById('rewrittenOutput');
+        this.styleSelector = document.getElementById('styleSelector');
+        this.styleSelect = document.getElementById('styleSelect');
 
         // 初始化placeholder行为
         this.initPlaceholder();
@@ -220,6 +242,93 @@ class UIModule {
         }
     }
 
+    /**
+     * 显示原文（单视图模式）
+     */
+    showOriginal(text) {
+        this.switchToSingleView();
+        this.updateOutput(text);
+        this.setActiveToggle('originalBtn');
+    }
+    
+    /**
+     * 显示整理稿（单视图模式）
+     */
+    showRewritten(text, style = 'formal') {
+        this.switchToSingleView();
+        this.updateOutput(text);
+        this.setActiveToggle('rewriteBtn');
+        this.updateStyleLabel(style);
+    }
+    
+    /**
+     * 显示对比视图
+     */
+    showCompareView(original, rewritten, style = 'formal') {
+        if (!this.singleView || !this.compareView) return;
+        
+        this.singleView.classList.add('hidden');
+        this.compareView.classList.remove('hidden');
+        this.styleSelector.classList.remove('hidden');
+        this.setActiveToggle('compareBtn');
+        
+        if (this.originalOutput) {
+            this.originalOutput.textContent = original;
+        }
+        if (this.rewrittenOutput) {
+            this.rewrittenOutput.textContent = rewritten;
+        }
+        this.updateStyleLabel(style);
+    }
+    
+    /**
+     * 切换到单视图模式
+     */
+    switchToSingleView() {
+        if (!this.singleView || !this.compareView) return;
+        
+        this.singleView.classList.remove('hidden');
+        this.compareView.classList.add('hidden');
+        this.styleSelector.classList.add('hidden');
+    }
+    
+    /**
+     * 设置激活的切换按钮
+     */
+    setActiveToggle(btnId) {
+        [this.originalBtn, this.rewriteBtn, this.compareBtn].forEach(btn => {
+            if (btn) btn.classList.remove('active');
+        });
+        const activeBtn = document.getElementById(btnId);
+        if (activeBtn) activeBtn.classList.add('active');
+    }
+    
+    /**
+     * 更新整理稿内容
+     */
+    updateRewritten(text, style = 'formal') {
+        if (this.rewrittenOutput) {
+            this.rewrittenOutput.textContent = text;
+        }
+        this.updateStyleLabel(style);
+    }
+    
+    /**
+     * 更新风格标签
+     */
+    updateStyleLabel(style) {
+        const styleLabel = document.querySelector('.style-label');
+        if (!styleLabel) return;
+        
+        const styleNames = {
+            'formal': '正式',
+            'concise': '简洁',
+            'polite': '礼貌',
+            'action': '行动导向'
+        };
+        styleLabel.textContent = styleNames[style] || '正式';
+    }
+    
     /**
      * 显示提示消息
      */
