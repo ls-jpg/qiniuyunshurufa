@@ -314,77 +314,88 @@ class TextRewriter {
     
     /**
      * 正式风格
+     *
+     * 设计思路：
+     *   1. 段落间添加"首先/其次/此外/最后"等过渡词，营造逻辑层次
+     *   2. 升级连接词为书面表达（但是→然而，所以→因此，而且→并且）
+     *   3. 较长文本末尾补上"综上所述"收束全文
+     *   4. 不使用单字替换，避免破坏词内语义
      */
     formalStyle(text) {
         let result = text;
         
-        // 1. 替换口语词为书面语
-        // FIX #6：移除"然后→其次"（改变时序语义）和"那个→空"（可能改变指代）
-        const formalMap = {
-            '咋': '怎么',
-            '啥': '什么',
-            '咋地': '怎么样',
-            '没准儿': '可能',
-            '甭': '不用',
-            '还有': '此外',
-            '的话': '',
-        };
+        // 1. 段落间添加过渡词（仅对分段的文本生效）
+        const paragraphs = result.split('\n\n');
+        if (paragraphs.length >= 2) {
+            const transitions = ['首先，', '其次，', '此外，', '最后，'];
+            result = paragraphs.map((p, i) => {
+                let trimmed = p.trim();
+                if (!trimmed) return trimmed;
+                if (i < transitions.length && trimmed.length > 8 &&
+                    !/^(首先|其次|此外|最后|另外|同时|综上)/.test(trimmed)) {
+                    trimmed = transitions[i] + trimmed;
+                }
+                return trimmed;
+            }).join('\n\n');
+        }
         
-        Object.keys(formalMap).forEach(key => {
-            const regex = new RegExp(key, 'g');
-            result = result.replace(regex, formalMap[key]);
-        });
-        
-        // 2. 补充完整句子（仅当"因为"后紧跟有实际内容时才补全）
-        // FIX #6：不再生成"因为X，所以。"的残缺句，确保补全的"所以"后有实质内容
-        result = result.replace(/因为(.+?)([。！？])/g, (match, content, punctuation) => {
-            // 仅在"因为"引导的完整子句后补全，跳过已有"所以"的
-            if (!content.includes('所以') && !content.includes('因此') && content.length > 1) {
-                return '因为' + content + '，所以需要关注' + punctuation;
-            }
-            return match;
-        });
-        
-        // 3. FIX #6：移除改变原意的全局单字替换（"用→使用"会把"用心"→"使用心"）
-        // 仅保留词组级别的替换，不使用无上下文约束的单字匹配
-        
-        // 4. 添加书面语连接词（这些是多字替换，不会破坏词内语义）
+        // 2. 升级连接词为书面表达（全部是多字匹配，安全）
         result = result.replace(/但是/g, '然而');
+        result = result.replace(/可是/g, '不过');
         result = result.replace(/所以/g, '因此');
+        result = result.replace(/而且/g, '并且');
+        result = result.replace(/还有/g, '此外');
+        
+        // 3. 长文本末尾补收束句
+        if (result.length > 150) {
+            const last30 = result.slice(-30);
+            if (!/综上|总之|总体|概括/.test(last30)) {
+                result = result.replace(/[。！？]$/, '。综上所述，以上为相关情况汇总。');
+            }
+        }
         
         return result;
     }
     
     /**
      * 简洁风格
+     *
+     * 设计思路：
+     *   1. 按句号切分，逐句压缩：去掉修饰词，保留核心主干
+     *   2. 如果内容包含明显行动项，尝试转为编号列表
+     *   3. 删除因果/转折连接词，让句子更直接
      */
     conciseStyle(text) {
         let result = text;
         
-        // 1. 删除语气词和冗余词
-        const redundantWords = ['嗯', '啊', '哦', '那个', '这个', '就是说', '的话'];
-        redundantWords.forEach(word => {
-            result = result.replace(new RegExp(word, 'g'), '');
+        // 1. 删除过度修饰
+        const modifiers = ['非常', '特别', '真的', '比较', '相当', '十分', '极其', '很'];
+        modifiers.forEach(w => {
+            result = result.replace(new RegExp(w, 'g'), '');
         });
         
-        // 2. 删除重复内容
-        result = result.replace(/(.{1,10})\1+/g, '$1');
-        
-        // 3. 简化连接词
+        // 2. 精简连接词
         result = result.replace(/首先，/g, '');
         result = result.replace(/其次，/g, '');
+        result = result.replace(/此外，/g, '');
         result = result.replace(/最后，/g, '');
+        result = result.replace(/另外，/g, '');
+        result = result.replace(/总而言之，?/g, '');
+        result = result.replace(/综上所述，?/g, '');
+        result = result.replace(/也就是说，?/g, '');
+        result = result.replace(/换句话说，?/g, '');
         
-        // 4. 删除不必要的修饰词
-        result = result.replace(/非常/g, '');
-        result = result.replace(/特别/g, '');
-        result = result.replace(/真的/g, '');
+        // 3. 压缩重复表达
+        result = result.replace(/(.{2,8})\1+/g, '$1');
         
-        // 5. 合并短句
-        result = result.replace(/。([^。]{0,10}?)，/g, '，$1。');
+        // 4. 合并连续短句
+        result = result.replace(/。\s*([^。]{1,15})。/g, (match, short) => {
+            return '，' + short.trim() + '。';
+        });
         
-        // 6. 清理多余标点
+        // 5. 清理多余标点和空白
         result = result.replace(/[，,]{2,}/g, '，');
+        result = result.replace(/[。]{2,}/g, '。');
         result = result.replace(/\s+/g, '');
         
         return result.trim();
@@ -392,46 +403,58 @@ class TextRewriter {
     
     /**
      * 礼貌风格
+     *
+     * 设计思路：
+     *   1. 人称敬语：你→您，你们→各位
+     *   2. 命令/要求→请示/商量语气：要→想/希望，必须→最好
+     *   3. 请求前加"请/烦请/劳驾"
+     *   4. 仅当文本是沟通类（含"你/我"等人称）时，才加开头问候和结尾感谢
+     *   5. 不机械地给所有文本加"您好"/"谢谢"
      */
     politeStyle(text) {
         let result = text;
         
-        // 1. 添加敬语
-        // FIX #6："您们"在标准汉语中不存在，改用"各位"
-        result = result.replace(/你/g, '您');
+        // 判断是否为沟通类文本（含人称代词或请求语气）
+        const isCommunication = /[你您我我们]|请|麻烦|帮|问|通知|告诉/.test(result);
+        
+        // 1. 人称敬语
+        if (!result.includes('您')) {
+            result = result.replace(/你/g, '您');
+        }
         result = result.replace(/你们/g, '各位');
         
-        // 2. 委婉表达
-        const politeMap = {
-            '不行': '可能不太方便',
-            '不知道': '不太了解',
-            '不行吗': '是否可以考虑',
-            '必须': '建议',
-            '一定要': '最好',
-        };
+        // 2. 柔和化命令/要求 → 商量语气
+        //    仅替换独立出现的"要/必须/一定"，不处理"重要/需要/必要"等词组
+        result = result.replace(/要(?=[做去拿买发安排处理改])/g, '想');
+        result = result.replace(/必须/g, '最好');
+        result = result.replace(/一定要/g, '希望能');
+        result = result.replace(/不行/g, '可能不太方便');
+        result = result.replace(/不知道/g, '还不太确定');
         
-        Object.keys(politeMap).forEach(key => {
-            const regex = new RegExp(key, 'g');
-            result = result.replace(regex, politeMap[key]);
-        });
-        
-        // 3. 添加礼貌开头
-        if (!result.startsWith('您好') && !result.startsWith('尊敬的')) {
-            result = '您好，' + result;
+        // 3. 请求句前补"请"（已有则不重复）
+        const verbsNeedPlease = /(帮|协助|处理|安排|确认|审核|审批|批准|回复|告知|通知|提供|提交)/;
+        if (!result.includes('请') && verbsNeedPlease.test(result)) {
+            result = result.replace(verbsNeedPlease, '请$&');
         }
         
-        // 4. 添加礼貌结尾
-        if (!result.endsWith('谢谢') && !result.endsWith('感谢')) {
-            result = result.replace(/[。！？]$/, '。谢谢！');
+        // 4. 沟通类文本：补问候头和感谢尾（逐段检查避免重复）
+        if (isCommunication) {
+            const firstPara = result.split('\n\n')[0] || result.split('\n')[0] || result;
+            const hasGreeting = /您好|你好|各位好|早上好|下午好|晚上好|打扰|冒昧/.test(firstPara);
+            if (!hasGreeting) {
+                result = '您好，' + result;
+            }
+            
+            const lastChar = result.slice(-1);
+            if (/[。！？]/.test(lastChar) && !/谢谢|感谢|辛苦|麻烦/.test(result.slice(-15))) {
+                result = result.replace(/[。！？]$/, '。辛苦您了！');
+            }
         }
         
-        // 5. 使用委婉语气词
-        result = result.replace(/吧$/g, '吧，可以吗？');
-        result = result.replace(/吗$/g, '吗？');
-        
-        // 6. 添加"请"字
-        if (result.includes('您') && !result.includes('请')) {
-            result = result.replace(/您(.+?)(?=[，。])/, '请您$1');
+        // 5. 疑问句补齐"？"并加商量后缀（避免重复加）
+        const endsWith商量 = /可以?吗[？?]?$/.test(result);
+        if (/[吗呢吧][。]$/.test(result) && !endsWith商量) {
+            result = result.replace(/([吗呢吧])。/g, '$1？');
         }
         
         return result;
@@ -439,65 +462,68 @@ class TextRewriter {
     
     /**
      * 行动导向风格
+     *
+     * 设计思路：
+     *   1. 识别包含动作动词的句子，提取为待办事项
+     *   2. 动作项编号列出，每条一行；非动作内容简述为上下文
+     *   3. 不再做"动词前移"（会生成乱序病句）
+     *   4. 有行动项时末尾补时间锚点
      */
     actionStyle(text) {
-        let result = text;
+        const actionVerbs = ['完成', '提交', '发送', '准备', '联系', '确认', '执行', '实施', '安排',
+                             '处理', '跟进', '协调', '采购', '招聘', '审批', '修改', '发布', '测试'];
         
-        // 1. 识别行动词并添加标记
-        const actionWords = ['做', '完成', '提交', '发送', '准备', '联系', '确认', '执行', '实施', '安排'];
-        let actionCount = 0;
+        // 按句号切分，分类为"行动句"和"上下文句"
+        const rawSentences = text.split(/(?<=[。！？])/);
+        const actionItems = [];
+        const contextSentences = [];
         
-        actionWords.forEach(word => {
-            const regex = new RegExp(`(.*?)${word}(.+?)(?=[，。])`, 'g');
-            result = result.replace(regex, (match, p1, p2) => {
-                if (!match.includes('【行动】')) {
-                    actionCount++;
-                    return `【行动${actionCount}】${p1}${word}${p2}`;
-                }
-                return match;
+        rawSentences.forEach(s => {
+            const trimmed = s.trim();
+            if (!trimmed) return;
+            
+            const hasActionVerb = actionVerbs.some(v => trimmed.includes(v));
+            if (hasActionVerb) {
+                actionItems.push(trimmed);
+            } else {
+                contextSentences.push(trimmed);
+            }
+        });
+        
+        // 构建输出
+        const parts = [];
+        
+        // 上下文简述（压缩为一两句）
+        if (contextSentences.length > 0) {
+            let context = contextSentences.join('').replace(/[，,]{2,}/g, '，');
+            // 删掉过长的上下文，只保留前80字
+            if (context.length > 80) {
+                context = context.substring(0, 80) + '…。';
+            }
+            parts.push('【背景】' + context);
+        }
+        
+        // 行动项编号
+        if (actionItems.length > 0) {
+            parts.push('【待办事项】');
+            actionItems.forEach((item, idx) => {
+                // 去掉"我/我们"开头，让行动更直接
+                let cleaned = item.replace(/^(我|我们|咱们)/, '').trim();
+                // 确保以行动动词结尾
+                parts.push(`${idx + 1}. ${cleaned}`);
             });
-        });
-        
-        // 2. 添加序号（如果有多个行动项）
-        if (actionCount > 1) {
-            for (let i = actionCount; i >= 1; i--) {
-                result = result.replace(`【行动${i}】`, `${i}. `);
-            }
-        } else {
-            result = result.replace(/【行动\d+】/g, '• ');
         }
         
-        // 3. 使用动词开头
-        const sentences = result.split(/(?<=[。！？])/);
-        const processed = sentences.map(sentence => {
-            sentence = sentence.trim();
-            if (!sentence) return '';
-            
-            // 如果句子不是以动词开头，尝试调整
-            const actionVerbs = ['完成', '提交', '发送', '准备', '联系', '确认', '执行', '安排', '做'];
-            const hasVerb = actionVerbs.some(verb => sentence.includes(verb));
-            
-            if (hasVerb && !actionVerbs.some(verb => sentence.startsWith(verb))) {
-                // 调整语序，把动词放到前面（简化实现）
-                actionVerbs.forEach(verb => {
-                    if (sentence.includes(verb)) {
-                        const index = sentence.indexOf(verb);
-                        const before = sentence.substring(0, index);
-                        const after = sentence.substring(index);
-                        sentence = after + before;
-                    }
-                });
-            }
-            
-            return sentence;
-        });
-        
-        result = processed.join('');
-        
-        // 4. 添加行动呼吁
-        if (!result.includes('请') && !result.includes('建议')) {
-            result = result.replace(/[。！？]$/, '。建议尽快执行。');
+        // 无行动项时返回原文简述
+        if (actionItems.length === 0) {
+            return text;
         }
+        
+        let result = parts.join('\n');
+        
+        // 末尾加时间锚点
+        result = result.replace(/[。！？]$/, '。');
+        result += '\n请尽快落实。';
         
         return result;
     }
