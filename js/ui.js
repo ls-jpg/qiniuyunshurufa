@@ -192,16 +192,30 @@ class UIModule {
             this.updateStatus('文本已复制到剪贴板', 'success');
             return true;
         } catch (error) {
-            // 降级方案
+            // FIX #8：降级方案，检查execCommand返回值
             const textarea = document.createElement('textarea');
             textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
             document.body.appendChild(textarea);
             textarea.select();
-            document.execCommand('copy');
+            
+            let success = false;
+            try {
+                success = document.execCommand('copy');
+            } catch (execError) {
+                console.error('execCommand 复制失败:', execError);
+            }
+            
             document.body.removeChild(textarea);
             
-            this.updateStatus('文本已复制到剪贴板', 'success');
-            return true;
+            if (success) {
+                this.updateStatus('文本已复制到剪贴板', 'success');
+                return true;
+            } else {
+                this.updateStatus('复制失败，请手动复制文本', 'error');
+                return false;
+            }
         }
     }
 
@@ -391,13 +405,17 @@ class UIModule {
         }
 
         try {
+            // FIX #9：HTML转义，防止特殊字符破坏导出文档结构
+            const escapedText = this._escapeHtml(text);
+            const escapedFilename = this._escapeHtml(filename);
+
             // 创建HTML内容（Word可以打开HTML文件）
             const htmlContent = `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <meta charset="UTF-8">
-                    <title>${filename}</title>
+                    <title>${escapedFilename}</title>
                     <style>
                         body {
                             font-family: "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
@@ -427,7 +445,7 @@ class UIModule {
                 </head>
                 <body>
                     <h1>语音识别结果</h1>
-                    <div class="content">${text.replace(/\n/g, '<br>')}</div>
+                    <div class="content">${escapedText.replace(/\n/g, '<br>')}</div>
                     <div class="info">
                         生成时间：${new Date().toLocaleString('zh-CN')}<br>
                         由"语音输入法"生成
@@ -463,6 +481,22 @@ class UIModule {
             this.updateStatus('导出失败，请重试', 'error');
             return false;
         }
+    }
+
+    /**
+     * FIX #9：HTML 转义辅助方法
+     * 将用户文本中的特殊字符转义为 HTML 实体，防止破坏导出文档结构
+     * @param {string} str - 需要转义的字符串
+     * @returns {string} 转义后的安全字符串
+     */
+    _escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 }
 

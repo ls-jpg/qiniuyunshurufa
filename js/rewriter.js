@@ -40,8 +40,8 @@ class TextRewriter {
         };
         
         // 连接词替换
+        // FIX #6：移除"然后→其次"（改变时序语义）
         this.connectorMap = {
-            '然后': '其次',
             '还有': '此外',
             '还有呢': '另外',
             '那个': '那个',
@@ -319,15 +319,14 @@ class TextRewriter {
         let result = text;
         
         // 1. 替换口语词为书面语
+        // FIX #6：移除"然后→其次"（改变时序语义）和"那个→空"（可能改变指代）
         const formalMap = {
             '咋': '怎么',
             '啥': '什么',
             '咋地': '怎么样',
             '没准儿': '可能',
             '甭': '不用',
-            '然后': '其次',
             '还有': '此外',
-            '那个': '',
             '的话': '',
         };
         
@@ -336,18 +335,20 @@ class TextRewriter {
             result = result.replace(regex, formalMap[key]);
         });
         
-        // 2. 补充完整句子（简单实现）
-        // 如果句子以"因为"、"由于"开头，确保有"所以"
-        if (result.includes('因为') && !result.includes('所以')) {
-            result = result.replace(/因为(.+?)。/g, '因为$1，所以。');
-        }
+        // 2. 补充完整句子（仅当"因为"后紧跟有实际内容时才补全）
+        // FIX #6：不再生成"因为X，所以。"的残缺句，确保补全的"所以"后有实质内容
+        result = result.replace(/因为(.+?)([。！？])/g, (match, content, punctuation) => {
+            // 仅在"因为"引导的完整子句后补全，跳过已有"所以"的
+            if (!content.includes('所以') && !content.includes('因此') && content.length > 1) {
+                return '因为' + content + '，所以需要关注' + punctuation;
+            }
+            return match;
+        });
         
-        // 3. 使用更正式的词汇
-        result = result.replace(/用/g, '使用');
-        result = result.replace(/买/g, '购买');
-        result = result.replace(/看/g, '查看');
+        // 3. FIX #6：移除改变原意的全局单字替换（"用→使用"会把"用心"→"使用心"）
+        // 仅保留词组级别的替换，不使用无上下文约束的单字匹配
         
-        // 4. 添加书面语连接词
+        // 4. 添加书面语连接词（这些是多字替换，不会破坏词内语义）
         result = result.replace(/但是/g, '然而');
         result = result.replace(/所以/g, '因此');
         
@@ -396,8 +397,9 @@ class TextRewriter {
         let result = text;
         
         // 1. 添加敬语
+        // FIX #6："您们"在标准汉语中不存在，改用"各位"
         result = result.replace(/你/g, '您');
-        result = result.replace(/你们/g, '您们');
+        result = result.replace(/你们/g, '各位');
         
         // 2. 委婉表达
         const politeMap = {

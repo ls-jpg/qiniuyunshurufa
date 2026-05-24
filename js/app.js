@@ -107,17 +107,18 @@
 
     /**
      * 新增：处理录音停止
+     * FIX #6：停止后不再默认自动改写；保留原文，改写作为显式增强让用户手动触发
      */
     function handleRecordingStop(finalText) {
         if (!finalText || !finalText.trim()) return;
 
-        // 自动触发智能整理
-        const rewritten = rewriter.rewrite(finalText, 'formal');
+        // 保存原文到 rewriter，让用户可手动切换风格
+        rewriter.setOriginal(finalText);
 
-        // 默认显示对比视图
-        uiModule.showCompareView(finalText, rewritten, 'formal');
+        // 默认仅展示原文，不做自动改写
+        uiModule.showOriginal(finalText);
 
-        uiModule.updateStatus('智能整理完成，可切换视图查看', 'success');
+        uiModule.updateStatus('录音已停止，可在下方选择风格进行智能整理', 'success');
     }
 
     /**
@@ -234,20 +235,54 @@
 
     /**
      * 新增：绑定风格切换事件
+     * FIX #7：添加防抖节流、加载状态管理和错误回退
      */
     function bindStyleEvents() {
-        if (uiModule.styleSelect) {
-            uiModule.styleSelect.addEventListener('change', (event) => {
-                const style = event.target.value;
-                const original = rewriter.getOriginal();
-                const rewritten = rewriter.rewrite(original, style);
+        if (!uiModule.styleSelect) return;
 
-                // 更新对比视图中的整理稿
-                uiModule.updateRewritten(rewritten, style);
+        let styleDebounceTimer = null;
+        let isRewriting = false;
 
-                uiModule.updateStatus(`已切换为"${getStyleName(style)}"风格`, 'info');
-            });
-        }
+        uiModule.styleSelect.addEventListener('change', (event) => {
+            const style = event.target.value;
+            const original = rewriter.getOriginal();
+
+            if (!original || !original.trim()) {
+                uiModule.updateStatus('请先进行语音输入或输入文本', 'warning');
+                // 恢复之前的选择
+                uiModule.styleSelect.value = rewriter.getCurrentStyle();
+                return;
+            }
+
+            // FIX #7：防抖处理，避免连续快速切换造成多次计算
+            if (styleDebounceTimer) {
+                clearTimeout(styleDebounceTimer);
+            }
+
+            // 如果正在处理中，阻止新的请求
+            if (isRewriting) {
+                uiModule.updateStatus('整理中，请稍候...', 'info');
+                return;
+            }
+
+            uiModule.updateStatus('正在整理...', 'info');
+
+            styleDebounceTimer = setTimeout(() => {
+                try {
+                    isRewriting = true;
+                    const rewritten = rewriter.rewrite(original, style);
+
+                    // 更新对比视图中的整理稿
+                    uiModule.updateRewritten(rewritten, style);
+                    uiModule.updateStatus('已切换为"' + getStyleName(style) + '"风格', 'success');
+                } catch (error) {
+                    console.error('智能整理失败:', error);
+                    uiModule.updateStatus('整理失败，请重试', 'error');
+                } finally {
+                    isRewriting = false;
+                }
+            }, 300); // 300ms 防抖延迟
+        });
     }
 
     /**
