@@ -54,6 +54,9 @@ class UIModule {
 
         // 初始化placeholder行为
         this.initPlaceholder();
+
+        // FIX #3：录音期间锁定编辑标志
+        this._editingLocked = false;
     }
 
     /**
@@ -120,14 +123,29 @@ class UIModule {
     }
 
     /**
+     * FIX #3：设置编辑锁定状态
+     * 录音期间锁定输出区域，保护用户手动编辑不被实时转写覆盖
+     * @param {boolean} locked - true=录音中锁定，false=解除锁定
+     */
+    setEditingLocked(locked) {
+        this._editingLocked = locked;
+    }
+
+    /**
      * 更新输出区域内容
+     * FIX #3：录音期间用户手动编辑时，跳过自动覆盖，避免实时转写与手动编辑冲突
      */
     updateOutput(text) {
-        if (this.outputElement) {
-            this.outputElement.textContent = text;
-            // 触发input事件以更新placeholder
-            this.outputElement.dispatchEvent(new Event('input'));
+        if (!this.outputElement) return;
+
+        // 如果录音期间用户正在手动编辑，跳过自动更新
+        if (this._editingLocked && document.activeElement === this.outputElement) {
+            return;
         }
+
+        this.outputElement.textContent = text;
+        // 触发input事件以更新placeholder
+        this.outputElement.dispatchEvent(new Event('input'));
     }
 
     /**

@@ -5,11 +5,13 @@
 class SpeechRecognitionModule {
     constructor() {
         this.recognition = null;
-        this.isRecording = false;
+        this._isRecording = false;           // 重命名：避免与 isRecording() 方法同名（FIX #5）
+        this._userRequestedStop = false;     // 新增：区分用户主动停止与异常结束（FIX #4）
         this.onResult = null;
         this.onStatusChange = null;
+        this.onRecordingStateChange = null;  // 新增：独立的录音状态枚举回调（FIX #1）
         this.onError = null;
-        this.onStop = null;  // 新增：录音停止回调
+        this.onStop = null;                  // 录音停止回调（仅用户主动停止时触发）
         this.finalTranscript = '';
         this.interimTranscript = '';
         
@@ -51,21 +53,24 @@ class SpeechRecognitionModule {
 
         // 识别开始事件
         this.recognition.onstart = () => {
-            this.isRecording = true;
+            this._isRecording = true;
             this.updateStatus('录音已开始，请开始说话...');
-            this.notifyStatusChange('recording');
+            this.notifyRecordingStateChange('recording');  // FIX #1：状态枚举走独立回调
         };
 
         // 识别结束事件
         this.recognition.onend = () => {
-            this.isRecording = false;
+            this._isRecording = false;
             this.updateStatus('录音已停止');
-            this.notifyStatusChange('stopped');
+            this.notifyRecordingStateChange('stopped');   // FIX #1：状态枚举走独立回调
             
-            // 新增：触发智能整理回调
-            if (this.onStop && this.finalTranscript) {
+            // FIX #4：仅在用户主动停止时才触发智能整理回调
+            if (this._userRequestedStop && this.onStop && this.finalTranscript) {
                 this.onStop(this.finalTranscript);
             }
+            
+            // 重置标志位
+            this._userRequestedStop = false;
         };
 
         // 识别错误事件
@@ -132,7 +137,7 @@ class SpeechRecognitionModule {
     }
 
     /**
-     * 更新状态
+     * 通知状态变化（提示文案，如"录音已开始"）
      */
     updateStatus(message, type = 'info') {
         if (this.onStatusChange) {
@@ -141,11 +146,12 @@ class SpeechRecognitionModule {
     }
 
     /**
-     * 通知状态变化
+     * 通知录音状态枚举变化（如 'recording' / 'stopped'）
+     * FIX #1：与 updateStatus（提示文案）走独立回调，避免字符串判断歧义
      */
-    notifyStatusChange(status) {
-        if (this.onStatusChange) {
-            this.onStatusChange(status);
+    notifyRecordingStateChange(state) {
+        if (this.onRecordingStateChange) {
+            this.onRecordingStateChange(state);
         }
     }
 
@@ -158,9 +164,15 @@ class SpeechRecognitionModule {
             return false;
         }
 
-        if (this.isRecording) {
+        if (this._isRecording) {
             return false;
         }
+
+        // FIX #2：新一轮录音前清空上轮缓冲，避免多轮拼接
+        this.finalTranscript = '';
+        this.interimTranscript = '';
+        // FIX #4：重置用户停止标志
+        this._userRequestedStop = false;
 
         try {
             this.recognition.start();
@@ -175,14 +187,18 @@ class SpeechRecognitionModule {
      * 停止录音
      */
     stop() {
-        if (!this.recognition || !this.isRecording) {
+        if (!this.recognition || !this._isRecording) {
             return false;
         }
+
+        // FIX #4：标记为用户主动停止，区别于异常/超时导致的结束
+        this._userRequestedStop = true;
 
         try {
             this.recognition.stop();
             return true;
         } catch (error) {
+            this._userRequestedStop = false;
             this.handleError('停止录音失败：' + error.message);
             return false;
         }
@@ -214,9 +230,10 @@ class SpeechRecognitionModule {
 
     /**
      * 检查是否正在录音
+     * FIX #5：方法名与属性名已解耦（属性改为 _isRecording）
      */
     isRecording() {
-        return this.isRecording;
+        return this._isRecording;
     }
 }
 

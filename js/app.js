@@ -34,6 +34,11 @@
             handleStatusChange(status, type);
         };
 
+        // FIX #1：录音状态枚举（recording/stopped）走独立回调，与提示文案分离
+        speechModule.onRecordingStateChange = (state) => {
+            handleRecordingStateChange(state);
+        };
+
         speechModule.onError = (error) => {
             handleError(error);
         };
@@ -65,24 +70,29 @@
     }
 
     /**
-     * 处理状态变化
+     * 处理状态变化（提示文案，如"录音已开始"、"网络错误"等）
+     * FIX #1：状态枚举（recording/stopped）已分离到 handleRecordingStateChange
      */
     function handleStatusChange(status, type) {
-        if (typeof status === 'string') {
-            // 状态消息
-            uiModule.updateStatus(status, type);
-        } else {
-            // 状态标识
-            switch (status) {
-                case 'recording':
-                    uiModule.setRecordingIndicator(true);
-                    uiModule.updateButtonStates(true);
-                    break;
-                case 'stopped':
-                    uiModule.setRecordingIndicator(false);
-                    uiModule.updateButtonStates(false);
-                    break;
-            }
+        uiModule.updateStatus(status, type);
+    }
+
+    /**
+     * FIX #1：独立的录音状态枚举处理（recording / stopped）
+     * 负责按钮启用/禁用、录音指示器显隐
+     */
+    function handleRecordingStateChange(state) {
+        switch (state) {
+            case 'recording':
+                uiModule.setRecordingIndicator(true);
+                uiModule.updateButtonStates(true);
+                uiModule.setEditingLocked(true);  // FIX #3：录音期间锁定编辑保护
+                break;
+            case 'stopped':
+                uiModule.setRecordingIndicator(false);
+                uiModule.updateButtonStates(false);
+                uiModule.setEditingLocked(false); // FIX #3：录音结束后解除锁定
+                break;
         }
     }
 
