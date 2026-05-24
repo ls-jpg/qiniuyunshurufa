@@ -297,24 +297,92 @@ footer {
     font-size: 0.9em;
 }
 
-@media (max-width: 768px) {
+/* ========== 响应式设计：平板和移动端 ========== */
+@media (max-width: 1024px) {
+    .container {
+        max-width: 95%;
+        margin: 10px;
+    }
+    
+    header {
+        padding: 20px;
+    }
+    
     header h1 {
-        font-size: 1.8em;
+        font-size: 2em;
+    }
+    
+    main {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        border-radius: 15px;
+    }
+    
+    header {
+        padding: 20px 15px;
+    }
+    
+    header h1 {
+        font-size: 1.6em;
+    }
+    
+    .subtitle {
+        font-size: 0.9em;
+    }
+    
+    main {
+        padding: 15px;
     }
     
     .control-panel {
         flex-direction: column;
+        gap: 10px;
     }
     
     .btn {
         width: 100%;
         justify-content: center;
+        padding: 12px 30px;
+        font-size: 1em;
     }
     
     .output-header {
         flex-direction: column;
         gap: 10px;
         align-items: flex-start;
+    }
+    
+    .output-header h2 {
+        font-size: 1.1em;
+    }
+    
+    .output-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .btn-action {
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .language-select {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .language-select select {
+        width: 100%;
     }
 }
 
@@ -479,41 +547,161 @@ footer {
     .toggle-btn {
         width: 100%;
         justify-content: center;
+        padding: 10px 15px;
+        font-size: 0.85em;
     }
     
     .output-header {
         flex-direction: column;
         align-items: stretch;
+        gap: 10px;
     }
     
     .compare-container {
         flex-direction: column;
         min-height: auto;
+        gap: 15px;
     }
     
     .divider {
         width: 100%;
         height: 2px;
-        margin: 10px 0;
+        margin: 5px 0;
         background: linear-gradient(to right, #667eea, #764ba2);
     }
     
     .compare-panel {
-        min-height: 250px;
+        min-height: 200px;
+        padding: 12px;
+    }
+    
+    .compare-panel h3 {
+        font-size: 1em;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
     }
     
     .compare-content {
-        min-height: 200px;
-        max-height: 300px;
+        min-height: 150px;
+        max-height: 250px;
+        padding: 8px;
+        font-size: 0.95em;
     }
     
     .style-selector {
         flex-direction: column;
         align-items: stretch;
+        padding: 12px;
+        margin-top: 10px;
+    }
+    
+    .style-selector label {
+        font-size: 0.9em;
     }
     
     .style-selector select {
         max-width: 100%;
+        width: 100%;
+    }
+}
+
+/* ========== 超小屏幕适配（手机横屏/竖屏） ========== */
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+    
+    .container {
+        border-radius: 10px;
+    }
+    
+    header {
+        padding: 15px 10px;
+    }
+    
+    header h1 {
+        font-size: 1.3em;
+    }
+    
+    .subtitle {
+        font-size: 0.8em;
+    }
+    
+    main {
+        padding: 10px;
+    }
+    
+    .control-panel {
+        gap: 8px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+    
+    .output-panel {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .output-area {
+        min-height: 150px;
+        max-height: 300px;
+        padding: 12px;
+        font-size: 1em;
+    }
+    
+    .info-panel {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .info-panel h3 {
+        font-size: 1em;
+    }
+    
+    .info-panel li {
+        font-size: 0.9em;
+        padding: 6px 0;
+        padding-left: 20px;
+    }
+    
+    .compare-panel {
+        padding: 10px;
+    }
+    
+    .compare-content {
+        min-height: 120px;
+        max-height: 200px;
+        font-size: 0.9em;
+    }
+    
+    .style-label {
+        font-size: 0.75em;
+        padding: 2px 8px;
+    }
+}
+
+/* ========== 大屏幕优化（桌面端） ========== */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1000px;
+    }
+    
+    header h1 {
+        font-size: 3em;
+    }
+    
+    .output-area {
+        min-height: 250px;
+        max-height: 500px;
+    }
+    
+    .compare-content {
+        min-height: 400px;
+        max-height: 600px;
     }
 }
 
