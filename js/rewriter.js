@@ -548,6 +548,30 @@ class TextRewriter {
     getCurrentStyle() {
         return this.currentStyle;
     }
+
+    /**
+     * 直接设置整理稿（供 AI 润色后外部写入）
+     * @param {string} text - 润色后的文本
+     */
+    setRewritten(text) {
+        this.rewrittenText = text;
+    }
+
+    /**
+     * 直接设置原始文本
+     * @param {string} text - 原始文本
+     */
+    setOriginal(text) {
+        this.originalText = text;
+    }
+
+    /**
+     * 直接设置当前风格
+     * @param {string} style - 风格标识
+     */
+    setCurrentStyle(style) {
+        this.currentStyle = style;
+    }
 }
 
 // 导出模块

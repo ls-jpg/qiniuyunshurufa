@@ -498,6 +498,108 @@ class UIModule {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
     }
+
+    /**
+     * 显示 API Key 输入对话框
+     * @returns {Promise<string|null>} 用户输入的 Key，取消返回 null
+     */
+    showApiKeyModal() {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('apiKeyModal');
+            const input = document.getElementById('apiKeyInput');
+            const confirmBtn = document.getElementById('apiKeyConfirmBtn');
+            const cancelBtn = document.getElementById('apiKeyCancelBtn');
+            const errorMsg = document.getElementById('apiKeyError');
+
+            if (!modal || !input) {
+                resolve(null);
+                return;
+            }
+
+            // 显示对话框
+            modal.classList.remove('hidden');
+            // 清空之前的值和错误
+            input.value = '';
+            if (errorMsg) errorMsg.classList.add('hidden');
+            // 聚焦到输入框
+            setTimeout(() => input.focus(), 100);
+
+            // 确认按钮处理函数
+            const handleConfirm = () => {
+                const key = input.value.trim();
+                if (!key) {
+                    if (errorMsg) {
+                        errorMsg.textContent = '请输入有效的 API Key';
+                        errorMsg.classList.remove('hidden');
+                    }
+                    return;
+                }
+                cleanup();
+                resolve(key);
+            };
+
+            // 取消处理函数
+            const handleCancel = () => {
+                cleanup();
+                resolve(null);
+            };
+
+            // 键盘事件处理
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    handleConfirm();
+                } else if (e.key === 'Escape') {
+                    handleCancel();
+                }
+            };
+
+            // 点击遮罩层关闭
+            const handleOverlayClick = (e) => {
+                if (e.target === modal) {
+                    handleCancel();
+                }
+            };
+
+            // 清理所有事件监听
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                if (confirmBtn) confirmBtn.removeEventListener('click', handleConfirm);
+                if (cancelBtn) cancelBtn.removeEventListener('click', handleCancel);
+                input.removeEventListener('keydown', handleKeyDown);
+                modal.removeEventListener('click', handleOverlayClick);
+            };
+
+            // 绑定事件
+            if (confirmBtn) confirmBtn.addEventListener('click', handleConfirm);
+            if (cancelBtn) cancelBtn.addEventListener('click', handleCancel);
+            input.addEventListener('keydown', handleKeyDown);
+            modal.addEventListener('click', handleOverlayClick);
+        });
+    }
+
+    /**
+     * 设置按钮加载状态
+     * @param {HTMLElement} button - 按钮元素
+     * @param {boolean} loading - 是否加载中
+     * @param {string} [loadingText] - 加载中的文本
+     */
+    setButtonLoading(button, loading, loadingText) {
+        if (!button) return;
+
+        if (loading) {
+            button._originalText = button.innerHTML;
+            button.innerHTML = '<span class="spinner"></span>' + (loadingText || '加载中...');
+            button.disabled = true;
+            button.classList.add('loading');
+        } else {
+            if (button._originalText) {
+                button.innerHTML = button._originalText;
+                delete button._originalText;
+            }
+            button.disabled = false;
+            button.classList.remove('loading');
+        }
+    }
 }
 
 // 添加toast动画样式

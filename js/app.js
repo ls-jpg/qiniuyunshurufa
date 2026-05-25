@@ -7,7 +7,8 @@
 
     let speechModule = null;
     let uiModule = null;
-    let rewriter = null;  // 新增：智能整理模块
+    let rewriter = null;  // 智能整理模块
+    let hunyuanAPI = null; // AI 润色模块
 
     /**
      * 初始化应用
@@ -16,7 +17,8 @@
         // 创建模块实例
         speechModule = new SpeechRecognitionModule();
         uiModule = new UIModule();
-        rewriter = new TextRewriter();  // 新增：创建智能整理模块
+        rewriter = new TextRewriter();  // 创建智能整理模块
+        hunyuanAPI = new HunyuanAPI();  // 创建 AI 润色模块
 
         // 检查浏览器支持
         if (!speechModule.recognition) {
@@ -56,6 +58,9 @@
 
         // 新增：绑定风格切换事件
         bindStyleEvents();
+
+        // 新增：绑定 AI 润色事件
+        bindAIPolishEvent();
 
         // 更新初始状态
         uiModule.updateStatus('准备就绪，点击"开始录音"按钮开始语音输入', 'info');
@@ -286,6 +291,78 @@
     }
 
     /**
+     * 新增：绑定 AI 润色按钮事件
+     */
+    function bindAIPolishEvent() {
+        const aiPolishBtn = document.getElementById('aiPolishBtn');
+        if (!aiPolishBtn) return;
+
+        aiPolishBtn.addEventListener('click', async () => {
+            const original = rewriter.getOriginal();
+            const style = rewriter.getCurrentStyle();
+
+            // 检查是否有文本
+            if (!original || !original.trim()) {
+                uiModule.updateStatus('请先进行语音输入或输入文本', 'warning');
+                return;
+            }
+
+            // 检查是否已配置 API Key
+            if (!hunyuanAPI.isConfigured()) {
+                uiModule.updateStatus('请先配置混元 API Key', 'info');
+                const apiKey = await uiModule.showApiKeyModal();
+                
+                if (!apiKey) {
+                    uiModule.updateStatus('已取消 AI 润色', 'info');
+                    return;
+                }
+                
+                hunyuanAPI.setApiKey(apiKey);
+                uiModule.updateStatus('API Key 已配置，正在调用 AI 润色...', 'info');
+            }
+
+            // 设置按钮加载状态
+            uiModule.setButtonLoading(aiPolishBtn, true, '✨ AI润色中...');
+
+            try {
+                // 调用混元 API 进行润色
+                const polished = await hunyuanAPI.polish(original, style);
+
+                // 更新 rewriter 状态
+                rewriter.setRewritten(polished);
+                rewriter.setCurrentStyle(style);
+
+                // 更新 UI 中的整理稿
+                uiModule.updateRewritten(polished, style);
+
+                // 自动切换到整理稿视图展示结果
+                uiModule.showRewritten(polished, style);
+
+                uiModule.updateStatus('AI 润色完成（' + getStyleName(style) + '风格）', 'success');
+                uiModule.showToast('✨ AI 润色完成');
+
+            } catch (error) {
+                console.error('AI 润色失败:', error);
+
+                // 降级：使用本地规则引擎
+                uiModule.updateStatus('AI 润色失败：' + error.message + '，已切换为本地润色', 'warning');
+
+                try {
+                    const rewritten = rewriter.rewrite(original, style);
+                    uiModule.updateRewritten(rewritten, style);
+                    uiModule.showRewritten(rewritten, style);
+                } catch (fallbackError) {
+                    console.error('本地润色也失败了:', fallbackError);
+                    uiModule.updateStatus('润色失败，请重试', 'error');
+                }
+            } finally {
+                // 恢复按钮状态
+                uiModule.setButtonLoading(aiPolishBtn, false);
+            }
+        });
+    }
+
+    /**
      * 新增：获取风格名称
      */
     function getStyleName(style) {
@@ -310,7 +387,8 @@
     // 导出到全局（用于调试）
     window.app = {
         speechModule,
-        uiModule
+        uiModule,
+        hunyuanAPI
     };
 
 })();

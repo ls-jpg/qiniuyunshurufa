@@ -728,3 +728,214 @@ footer {
 .style-selector:not(.hidden) {
     animation: fadeIn 0.3s ease;
 }
+
+/* ========== AI 润色按钮 ========== */
+.btn-ai-polish {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    border: none;
+}
+
+.btn-ai-polish:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);
+}
+
+/* ========== 按钮加载状态 ========== */
+.btn-action.loading {
+    opacity: 0.7;
+    cursor: wait;
+    pointer-events: none;
+}
+
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========== API Key 对话框（模态窗） ========== */
+.api-key-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeInOverlay 0.25s ease;
+}
+
+.api-key-modal.hidden {
+    display: none;
+}
+
+@keyframes fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.api-key-modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    width: 90%;
+    max-width: 460px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.api-key-modal-content h3 {
+    font-size: 1.3em;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.api-key-modal-content .modal-desc {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.api-key-modal-content .modal-desc a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.api-key-modal-content .modal-desc a:hover {
+    text-decoration: underline;
+}
+
+.api-key-input-group {
+    margin-bottom: 8px;
+}
+
+.api-key-input-group label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+.api-key-input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+.api-key-input-group input:focus {
+    border-color: #667eea;
+}
+
+.api-key-error {
+    color: #eb3349;
+    font-size: 0.85em;
+    margin-bottom: 10px;
+    min-height: 20px;
+}
+
+.api-key-error.hidden {
+    display: none;
+}
+
+.api-key-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.api-key-modal-actions .btn-cancel {
+    padding: 10px 25px;
+    border: 2px solid #ddd;
+    background: white;
+    color: #666;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.api-key-modal-actions .btn-cancel:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+.api-key-modal-actions .btn-confirm {
+    padding: 10px 25px;
+    border: none;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.api-key-modal-actions .btn-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* ========== 响应式：对话框移动端适配 ========== */
+@media (max-width: 480px) {
+    .api-key-modal-content {
+        padding: 20px;
+        width: 95%;
+        border-radius: 12px;
+    }
+
+    .api-key-modal-content h3 {
+        font-size: 1.1em;
+    }
+
+    .api-key-modal-actions {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .api-key-modal-actions button {
+        width: 100%;
+        padding: 12px;
+        text-align: center;
+    }
+}
